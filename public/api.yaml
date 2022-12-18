@@ -1,0 +1,237 @@
+openapi: 3.0.3
+info:
+  title: Todo API
+  description: ''
+  version: 1.0.0
+servers:
+  - url: http://todo-list.local/api
+    description: 'local server'
+paths:
+  /create-account:
+    post:
+      tags:
+        - Create new user
+      summary: Create new user and get token
+      operationId: createAccount
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { }
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: name
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: password
+          schema:
+            type: string
+            minLength: 6
+          required: true
+  /signin:
+    post:
+      responses:
+        '200':
+          description: Successful operation
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      operationId: executeAction
+      summary: Sign in
+      description: Sign in and get token
+      tags:
+        - Login
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+          required: true
+          description: Registered Email
+        - in: query
+          name: password
+          schema:
+            type: string
+          required: true
+          description: ''
+  /sign-out:
+    post:
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+      operationId: signOut
+      tags:
+        - Logout
+      security:
+        - bearer: [ ]
+  /todo:
+    get:
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      tags:
+        - Todo
+      operationId: index
+      summary: Get current user todos list
+      security:
+        - bearer: [ ]
+      description: Get current user todos by bearer token
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum:
+              - done
+              - process
+    post:
+      responses:
+        '201':
+          description: Successful operation
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      tags:
+        - Todo
+      operationId: store
+      summary: Add new todo
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Todo'
+  /todo/{id}:
+    get:
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      tags:
+        - Todo
+      operationId: show
+      parameters:
+        - required: true
+          in: path
+          name: id
+          schema:
+            type: integer
+      summary: Get todo by id
+      security:
+        - bearer: [ ]
+    put:
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      tags:
+        - Todo
+      operationId: update
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Todo'
+      security:
+        - bearer: [ ]
+    patch:
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      tags:
+        - Todo
+      operationId: changeStatus
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: status
+          required: true
+          schema:
+            type: string
+            enum:
+              - done
+              - process
+      security:
+        - bearer: [ ]
+    delete:
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '204':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+      tags:
+        - Todo
+      operationId: delete
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      security:
+        - bearer: [ ]
+components:
+  securitySchemes:
+    bearer: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: token
+  schemas:
+    Todo:
+      required:
+        - name
+        - description
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+        schedule_start:
+          type: string
+          example: 10/18/2032 07:40 AM
+          default: m/d/Y h:i A
+          description: format m/d/Y h:i A
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+    Success:
+      description: Http ok
+    NotFound:
+      description: Resource not found
+tags:
+  - name: Todo
+    description: Todo operations
