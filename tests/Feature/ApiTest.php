@@ -63,7 +63,7 @@ class ApiTest extends TestCase
                 [
                     'name' => 'testTodo',
                     'description' => 'Test description',
-                    'schedule_start' => date('m/d/Y h:i A', (time() + 10000)),
+                    'schedule_start' => date('Y-m-d H:i', time() + 10000),
                     'category_id' => Categories::first()->id
                 ]
             )

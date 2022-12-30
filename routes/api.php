@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\AuthenticationController;
 use App\Http\Controllers\ToDoController;
-use App\Http\Resources\ToDoResource;
+use App\Http\Resources\ToDoCollection;
 use App\Models\Todo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -24,20 +24,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post('/tokens/create', function (Request $request) {
     $token = $request->user()->createToken($request->token_name);
-
     return ['token' => $token->plainTextToken];
 });
 
-Route::post('/create-account', [AuthenticationController::class, 'createAccount'])->name('CreateAccount');
-//login user
+Route::post('/create-account', [AuthenticationController::class, 'createAccount'])->name('createAccount');
 Route::post('/signin', [AuthenticationController::class, 'signIn'])->name('login');
-//using middleware
-Route::group(['middleware' => ['auth:sanctum']], function () {
-    Route::get('/profile', function (Request $request) {
-        return auth()->user();
-    });
-    Route::post('/sign-out', [AuthenticationController::class, 'signOut'])->name('logout');
-});
 
 Route::group(['middleware' => ['auth:sanctum', 'abilities:check-status,place-orders']], function() {
     Route::get('todo', [ToDoController::class, 'index']);
@@ -45,6 +36,11 @@ Route::group(['middleware' => ['auth:sanctum', 'abilities:check-status,place-ord
     Route::post('todo', [ToDoController::class, 'store'])->name('createTodo');
     Route::put('todo/{id}', [ToDoController::class, 'update']);
     Route::patch('todo/{id}', [ToDoController::class, 'changeStatus'])->name('changeStatus');
-    Route::delete('todo/{id}', [ToDoController::class, 'delete'])->name('todoDelete');
+    Route::delete('todo/{id}', [ToDoController::class, 'destroy'])->name('todoDelete');
     Route::get('check-token', [AuthenticationController::class, 'checkToken']);
+
+    Route::get('/profile', function () {
+        return auth()->user();
+    });
+    Route::post('/sign-out', [AuthenticationController::class, 'signOut'])->name('logout');
 });

@@ -4,24 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Enums\ToDoStatus;
 use App\Http\Requests\ToDoChangeStatusRequest;
 use App\Http\Requests\TodoRequest;
-use App\Models\Categories;
+use App\Http\Resources\ToDoCollection;
 use App\Models\Todo;
-use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ToDoController extends Controller
 {
-    private int $userId = 0;
-
-    const STATUS_DONE = 'DONE';
-    const STATUS_PROCESS = 'PROCESS';
-
-    public function __construct(public Request $request)
+    public function __construct(private readonly Request $request, private int $userId = 0)
     {
         if (!auth('sanctum')->user()) {
             return false;
@@ -31,70 +24,37 @@ class ToDoController extends Controller
 
     public function index()
     {
-        $result = Todo::where('user_id', $this->userId);
-        match ($this->request->get('status')) {
-            ToDoStatus::Done->value => $result->whereNotNull('done'),
-            ToDoStatus::Process->value => $result->whereNotNull('started')->whereNull('done'),
-            default => $result->whereNull(['done', 'started'])
-        };
-        return $result->get();
+        return new ToDoCollection((new \App\Services\Todo($this->request, $this->userId))->list());
     }
 
-    public function show($id)
+    public function show($id): JsonResponse
     {
-        return Todo::where(['id' => $id, 'user_id' => $this->userId])->first();
+        return \response()->json((new \App\Services\Todo($this->request, $this->userId))->show($id));
     }
 
-    public function store(TodoRequest $request)
+    public function store(TodoRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        if (!empty($data['schedule_start'])) {
-            $data['schedule_start'] = Carbon::createFromFormat('m/d/Y h:i A', $data['schedule_start']);
-            //Event::dispatch(new Scheduled());
-        }
-        $data['user_id'] = $this->userId;
-        $data['category_id'] ??= (Categories::first()?->id ?? null);
-
-        return Todo::create($data);
+        return \response()->json((new \App\Services\Todo($request, $this->userId))->store());
     }
 
     public function update($id, TodoRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        /** @var Todo $todo */
-        $todo = Todo::findOrFail($id);
-        if ($this->userId !== $todo->user_id) {
-            return \response()->json('Forbidden')->setStatusCode(Response::HTTP_FORBIDDEN);
-        }
-        $status = Response::HTTP_NO_CONTENT;
-        if ($todo->update($data)) {
-            $status = Response::HTTP_OK;
-        }
+        $isUpdated = (new \App\Services\Todo($request, $this->userId))->update($id);
+        $status = $isUpdated ? Response::HTTP_OK : Response::HTTP_NO_CONTENT;
         return \response()->json()->setStatusCode($status);
     }
 
-    public function delete($id): JsonResponse
+    public function destroy($id): JsonResponse
     {
-        $todo = Todo::where(['id' => $id, 'user_id' => $this->userId])->first();
-        $status = Response::HTTP_NO_CONTENT;
-        if ($todo && $todo->delete()) {
-            $status = Response::HTTP_OK;
-        }
+        $isDeleted = Todo::where(['id' => $id, 'user_id' => $this->userId])->delete();
+        $status = $isDeleted ? Response::HTTP_OK : Response::HTTP_NO_CONTENT;
         return \response()->json()->setStatusCode($status);
     }
 
-    public function changeStatus($id, ToDoChangeStatusRequest $request)
+    public function changeStatus($id, ToDoChangeStatusRequest $request): JsonResponse
     {
-        $request->validated();
-        $todo = Todo::where(['id' => $id, 'user_id' => $this->userId])->first();
-        if (!$todo) {
-            return \response()->json('Todo not found')->setStatusCode(Response::HTTP_NO_CONTENT);
-        }
-        match ($request->get('status')) {
-            ToDoStatus::Process->value => $todo->started = now(),
-            ToDoStatus::Done->value => $todo->done = now(),
-        };
-
-        return $todo->save();
+        $isUpdated = (new \App\Services\Todo($request, $this->userId))->changeStatus($id);
+        $status = $isUpdated ? Response::HTTP_OK : Response::HTTP_NO_CONTENT;
+        return \response()->json()->setStatusCode($status);
     }
 }

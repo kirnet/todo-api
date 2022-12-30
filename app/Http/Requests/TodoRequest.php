@@ -29,7 +29,7 @@ class TodoRequest extends FormRequest
         return [
             'name' => 'required|string|min:1|max:255',
             'description' => 'required|string|min:1',
-            'schedule_start' => 'nullable|date_format:m/d/Y h:i A'
+            'schedule_start' => 'nullable|date_format:Y-m-d H:i'
         ];
     }
 

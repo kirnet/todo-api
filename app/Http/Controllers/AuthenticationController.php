@@ -32,7 +32,7 @@ class AuthenticationController extends Auth
     {
         $attr = $request->validated();
         if ( ! Auth::attempt($attr)) {
-            return response()->json(['Credentials not match'])->setStatusCode(Response::HTTP_UNAUTHORIZED);
+            return response()->json(['Credentials not match'], Response::HTTP_UNAUTHORIZED);
         }
 
         return response()->json([
